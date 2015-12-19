@@ -1,0 +1,8 @@
+[package]
+name = "mvcc-rocks"
+version = "0.1.0"
+authors = ["dongxu <i@huangdx.net>"]
+
+[dependencies]
+rocksdb = "0.2.2"
+byteorder = "0.4"
