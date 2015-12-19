@@ -12,11 +12,11 @@ fn encode(key :&[u8], ver :u64) -> Result<Vec<u8>> {
     let mut new_key = Vec::with_capacity(key.len() + 20);
 
     if data.len() > 0 && data[0] == b'\xff' {
-		// we must escape 0xFF here to guarantee encoded value < InfiniteValue \xFF\xFF.
+        // we must escape 0xFF here to guarantee encoded value < InfiniteValue \xFF\xFF.
         new_key.push(b'\xff');
         new_key.push(b'\x00');
         data = &data[1..];
-	}
+    }
     for c in data {
         match *c {
             b'\x00' =>  {
