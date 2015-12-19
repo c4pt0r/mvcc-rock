@@ -31,7 +31,6 @@ fn encode(key :&[u8], ver :u64) -> Result<Vec<u8>> {
     new_key.push(b'\x00');
     new_key.push(b'\x01');
 
-    // put version
     let mut wtr = Vec::with_capacity(8);
     wtr.write_u64::<BigEndian>(ver).unwrap();
     new_key.extend(&*wtr);
@@ -50,31 +49,27 @@ fn decode(encoded :&[u8]) -> Result<(Vec<u8>, u64)> {
         key.push(data[0]);
         data = &data[2..]
     }
-    for (i, c) in data.iter().enumerate() {
-        // find \x00 => {\xff, \x01 -> term}
-        match *c {
-            b'\x00' => {
-                if i + 1 >= data.len() {
-                    return Err(Error(-2, "invalid format".to_string()))
+
+    let mut ver_buf :&[u8];
+    'outer: loop {
+        let mut idx = 0;
+        for (i, c) in data.iter().enumerate() {
+            if *c == b'\x00' {
+                idx = i;
+                if data[i + 1] == b'\x01' {
+                    key.extend(&data[..idx]);
+                    ver_buf = &data[idx+2..];
+                    break 'outer;
                 }
-                match data[i+1] {
-                    b'\xff' => {
-                        key.push(b'\x00');
-                        continue
-                    }
-                    b'\x01' => {
-                        break
-                    }
-                    _ => {
-                        return Err(Error(-3, "invalid format".to_string()))
-                    }
-                }
-            }
-            _ => {
-                key.push(*c);
+                break
             }
         }
+        key.extend(&data[..idx]);
+        key.push(b'\x00');
+        data = &data[idx+2..];
     }
+
+    // TODO: deal with ver_buf
     Ok((key, 0))
 }
 
@@ -103,12 +98,13 @@ fn main() {
         Err(Error(code, msg)) => println!("err code: {:?}, msg: {:?}", code, msg),
     }
 
-    match encode(b"\xffhe\x00llo", 23) {
+    let ori = b"\xff\xffh\x00e\x00llo";
+    match encode(ori, 23) {
         Ok(key) => {
             println!("encoded: {:?}", key);
             match decode(key.as_slice()) {
-                Ok((ori, ver)) => {
-                    println!("decoded: {:?}", ori);
+                Ok((r, ver)) => {
+                    println!("ori:{:?} decoded: {:?}", ori, r);
                 }
                 _ => (),
             }
